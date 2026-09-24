@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
+/**
+ * 设计令牌
+ *
+ * 这些取值来自 UI 原型（mockups/ui-preview.html）。
+ * 定义成语义化变量而不是散落的十六进制值，有两个好处：
+ * 1. 改配色只需改这一处，不会漏掉某个页面。
+ * 2. 深色模式只需覆盖变量，无需在组件里到处写 dark: 变体。
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --border: #e8eaee;
+  --text: #17181c;
+  --muted: #71757f;
+  --faint: #9aa0aa;
+  --brand: #4f46e5;
+  --brand-soft: #eef0ff;
+  --income: #0d9488;
+  --expense: #e11d48;
+  --danger: #e11d48;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0c0d10;
+    --surface: #15171c;
+    --border: #252830;
+    --text: #f2f3f5;
+    --muted: #9ba1ad;
+    --faint: #6f7581;
+    --brand: #7c76f0;
+    --brand-soft: #1d1d33;
+    --income: #2dd4bf;
+    --expense: #fb7185;
+    --danger: #fb7185;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+}
+
+/**
+ * 金额与日期一律使用等宽数字。
+ * 否则列表里不同数字宽度的字符会让小数点错位，逐行核对金额时非常难受。
+ */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

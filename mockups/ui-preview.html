@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>记账本 · UI 原型预览</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --border:#e8eaee;
+    --text:#17181c; --muted:#71757f; --faint:#9aa0aa;
+    --brand:#4f46e5; --brand-soft:#eef0ff;
+    --income:#0d9488; --expense:#e11d48;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0c0d10; --surface:#15171c; --border:#252830;
+      --text:#f2f3f5; --muted:#9ba1ad; --faint:#6f7581;
+      --brand:#7c76f0; --brand-soft:#1d1d33;
+      --income:#2dd4bf; --expense:#fb7185;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    font-size:14px; line-height:1.5;
+  }
+  /* ---- 原型外壳：仅用于演示，真实应用里没有这层 ---- */
+  .proto-bar{
+    position:sticky; top:0; z-index:99;
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:10px 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .proto-tag{
+    background:var(--brand); color:#fff; font-size:11px; font-weight:600;
+    padding:3px 9px; border-radius:999px; letter-spacing:.02em;
+  }
+  .proto-bar .hint{color:var(--muted); font-size:12px}
+  .proto-bar nav{display:flex; gap:4px; flex-wrap:wrap; margin-left:auto}
+  .proto-bar button{
+    font:inherit; font-size:12.5px; color:var(--muted); cursor:pointer;
+    background:transparent; border:1px solid transparent; border-radius:8px; padding:6px 11px;
+  }
+  .proto-bar button:hover{background:var(--bg); color:var(--text)}
+  .proto-bar button.on{
+    background:var(--brand-soft); color:var(--brand);
+    border-color:color-mix(in srgb, var(--brand) 30%, transparent); font-weight:600;
+  }
+  .frame{border-bottom:1px dashed var(--border)}
+  .screen{display:none}
+  .screen.on{display:block}
+  .caption{
+    text-align:center; color:var(--faint); font-size:12px;
+    padding:10px; border-bottom:1px dashed var(--border);
+  }
+
+  /* ---- 应用外壳 ---- */
+  .shell{display:flex; min-height:calc(100vh - 110px)}
+  .sidebar{
+    width:216px; flex:0 0 216px; background:var(--surface);
+    border-right:1px solid var(--border); padding:18px 12px; display:flex; flex-direction:column;
+  }
+  .brand{display:flex; align-items:center; gap:9px; padding:4px 10px 20px}
+  .brand-mark{
+    width:30px; height:30px; border-radius:9px; background:var(--brand);
+    display:grid; place-items:center; color:#fff; flex:0 0 30px;
+  }
+  .brand-name{font-weight:650; font-size:15px; letter-spacing:.01em}
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 10px; border-radius:9px; color:var(--muted);
+    font-size:13.5px; margin-bottom:2px; text-decoration:none;
+  }
+  .nav-item svg{flex:0 0 17px; opacity:.85}
+  .nav-item.active{background:var(--brand-soft); color:var(--brand); font-weight:600}
+  .nav-item.active svg{opacity:1}
+  .sidebar-foot{margin-top:auto; border-top:1px solid var(--border); padding-top:12px}
+  .user-chip{display:flex; align-items:center; gap:9px; padding:6px 10px; border-radius:9px}
+  .avatar{
+    width:27px; height:27px; border-radius:50%; flex:0 0 27px;
+    background:linear-gradient(135deg,#6366f1,#a855f7);
+    display:grid; place-items:center; color:#fff; font-size:11.5px; font-weight:600;
+  }
+  .user-meta{min-width:0}
+  .user-meta b{display:block; font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .user-meta span{display:block; font-size:11px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .main{flex:1; min-width:0; padding:26px 30px 40px}
+  .page-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap}
+  .page-head h1{font-size:21px; font-weight:660; letter-spacing:-.01em}
+  .page-head p{color:var(--muted); font-size:13px; margin-top:3px}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px;
+  }
+  .btn{
+    font:inherit; font-size:13px; font-weight:560; cursor:pointer;
+    border-radius:9px; padding:9px 15px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text);
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn-primary{background:var(--brand); border-color:var(--brand); color:#fff}
+  .btn-ghost{background:transparent; border-color:transparent; color:var(--muted)}
+
+  /* 概览统计 */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px}
+  .stat{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:16px 18px}
+  .stat .label{font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px}
+  .dot{width:7px; height:7px; border-radius:50%; display:inline-block}
+  .stat .value{font-size:25px; font-weight:660; letter-spacing:-.02em; margin-top:9px; font-variant-numeric:tabular-nums}
+  .stat .sub{font-size:11.5px; color:var(--faint); margin-top:5px}
+  .v-income{color:var(--income)} .v-expense{color:var(--expense)}
+
+  .grid-2{display:grid; grid-template-columns:1.05fr 1fr; gap:16px; margin-bottom:16px}
+  .card-title{font-size:14px; font-weight:620; margin-bottom:2px}
+  .card-sub{font-size:12px; color:var(--faint); margin-bottom:16px}
+
+  /* 环形图 */
+  .donut-wrap{display:flex; align-items:center; gap:22px}
+  .donut{position:relative; flex:0 0 152px}
+  .donut-center{
+    position:absolute; inset:0; display:grid; place-content:center; text-align:center;
+  }
+  .donut-center b{display:block; font-size:16.5px; font-weight:660; font-variant-numeric:tabular-nums}
+  .donut-center span{font-size:11px; color:var(--faint)}
+  .legend{flex:1; min-width:0}
+  .legend-row{display:flex; align-items:center; gap:9px; padding:6px 0; font-size:12.5px}
+  .legend-row .nm{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .legend-row .amt{font-variant-numeric:tabular-nums; color:var(--muted)}
+  .legend-row .pct{width:44px; text-align:right; color:var(--faint); font-variant-numeric:tabular-nums}
+
+  /* 对比条 */
+  .bar-row{display:grid; grid-template-columns:52px 1fr 92px; align-items:center; gap:11px; padding:7px 0; font-size:12.5px}
+  .bar-row .m{color:var(--muted)}
+  .track{height:7px; border-radius:999px; background:var(--bg); overflow:hidden; display:flex; gap:2px}
+  .track i{display:block; height:100%; border-radius:999px}
+  .bar-row .nums{text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); font-size:11.5px}
+
+  /* 表格 */
+  .filters{display:flex; gap:9px; align-items:center; margin-bottom:15px; flex-wrap:wrap}
+  .select{
+    font:inherit; font-size:12.5px; color:var(--text); background:var(--surface);
+    border:1px solid var(--border); border-radius:9px; padding:8px 30px 8px 11px;
+    appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa0aa' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+  }
+  .seg{display:inline-flex; background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:2px}
+  .seg span{font-size:12.5px; padding:6px 13px; border-radius:7px; color:var(--muted); cursor:pointer}
+  .seg span.on{background:var(--surface); color:var(--text); font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .table{width:100%; border-collapse:collapse}
+  .table th{
+    text-align:left; font-size:11.5px; font-weight:600; color:var(--faint);
+    padding:0 12px 11px; border-bottom:1px solid var(--border); letter-spacing:.02em;
+  }
+  .table th.r, .table td.r{text-align:right}
+  .table td{padding:12px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle}
+  .table tr:last-child td{border-bottom:none}
+  .table tbody tr:hover{background:color-mix(in srgb, var(--bg) 60%, transparent)}
+  .cat{display:inline-flex; align-items:center; gap:7px}
+  .cat-ico{
+    width:25px; height:25px; border-radius:8px; display:grid; place-items:center;
+    flex:0 0 25px; font-size:13px;
+  }
+  .amt{font-variant-numeric:tabular-nums; font-weight:600}
+  .amt.in{color:var(--income)} .amt.ex{color:var(--expense)}
+  .note{color:var(--muted); font-size:12.5px}
+  .date{color:var(--muted); font-variant-numeric:tabular-nums}
+  .row-actions{display:flex; gap:3px; justify-content:flex-end; opacity:.55}
+  .table tbody tr:hover .row-actions{opacity:1}
+  .icon-btn{
+    width:27px; height:27px; border-radius:7px; border:1px solid transparent;
+    background:transparent; color:var(--muted); cursor:pointer; display:grid; place-items:center;
+  }
+  .icon-btn:hover{background:var(--bg); color:var(--text)}
+
+  .group-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:11px 12px; background:var(--bg); border-radius:9px; margin:16px 0 4px;
+    font-size:12.5px; font-weight:620;
+  }
+  .group-head .sum{color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums}
+  .group-head .sum b{color:var(--expense); font-weight:620}
+
+  /* 表单 */
+  .form-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px}
+  .field{display:flex; flex-direction:column; gap:7px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:12.5px; font-weight:560; color:var(--muted)}
+  .input{
+    font:inherit; font-size:13.5px; color:var(--text); background:var(--surface);
+    border:1px solid var(--border); border-radius:9px; padding:10px 12px; width:100%;
+  }
+  .input::placeholder{color:var(--faint)}
+  .input-amount{font-size:19px; font-weight:640; font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+  .type-toggle{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .type-toggle div{
+    text-align:center; padding:10px; border-radius:9px; font-size:13px; font-weight:580;
+    border:1px solid var(--border); color:var(--muted); cursor:pointer;
+  }
+  .type-toggle div.on-ex{background:color-mix(in srgb,var(--expense) 11%,transparent); border-color:var(--expense); color:var(--expense)}
+  .type-toggle div.on-in{background:color-mix(in srgb,var(--income) 11%,transparent); border-color:var(--income); color:var(--income)}
+  .chips{display:flex; gap:7px; flex-wrap:wrap}
+  .chip{
+    font-size:12.5px; padding:7px 12px; border-radius:999px;
+    border:1px solid var(--border); color:var(--muted); cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .chip.on{background:var(--brand-soft); border-color:var(--brand); color:var(--brand); font-weight:600}
+  .form-actions{display:flex; gap:9px; justify-content:flex-end; margin-top:22px; padding-top:18px; border-top:1px solid var(--border)}
+
+  /* 分类管理 */
+  .cat-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(212px,1fr)); gap:12px}
+  .cat-card{
+    display:flex; align-items:center; gap:11px; padding:13px;
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  }
+  .cat-card .ico{width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-size:16px; flex:0 0 34px}
+  .cat-card .meta{flex:1; min-width:0}
+  .cat-card .meta b{display:block; font-size:13.5px; font-weight:600}
+  .cat-card .meta span{font-size:11.5px; color:var(--faint)}
+  .swatches{display:flex; gap:7px; flex-wrap:wrap}
+  .swatches i{width:26px; height:26px; border-radius:8px; cursor:pointer; display:block}
+  .swatches i.on{outline:2px solid var(--text); outline-offset:2px}
+
+  /* 登录页 */
+  .auth-wrap{
+    min-height:calc(100vh - 110px); display:grid; place-items:center; padding:40px 20px;
+    background:
+      radial-gradient(680px 340px at 50% -10%, color-mix(in srgb,var(--brand) 13%,transparent), transparent),
+      var(--bg);
+  }
+  .auth-card{
+    width:100%; max-width:388px; background:var(--surface);
+    border:1px solid var(--border); border-radius:18px; padding:32px;
+    box-shadow:0 20px 50px -22px rgba(15,18,40,.22);
+  }
+  .auth-brand{display:flex; align-items:center; gap:10px; justify-content:center; margin-bottom:22px}
+  .auth-card h2{font-size:19px; font-weight:660; text-align:center; letter-spacing:-.01em}
+  .auth-card .lead{text-align:center; color:var(--muted); font-size:13px; margin:6px 0 24px}
+  .auth-card .field{margin-bottom:15px}
+  .btn-block{width:100%; justify-content:center; padding:11px; font-size:13.5px}
+  .auth-foot{text-align:center; font-size:12.5px; color:var(--muted); margin-top:19px}
+  .auth-foot a{color:var(--brand); text-decoration:none; font-weight:560}
+
+  .section-label{font-size:12px; font-weight:620; color:var(--faint); letter-spacing:.04em; margin:22px 0 11px}
+  .danger-zone{border:1px solid color-mix(in srgb,var(--expense) 34%,transparent); border-radius:12px; padding:16px}
+  .kv{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:13px}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--muted)}
+  .switch{width:38px; height:22px; border-radius:999px; background:var(--brand); position:relative; flex:0 0 38px}
+  .switch::after{content:""; position:absolute; top:3px; right:3px; width:16px; height:16px; border-radius:50%; background:#fff}
+  .switch.off{background:var(--border)}
+  .switch.off::after{right:auto; left:3px}
+
+  @media (max-width:900px){
+    .sidebar{width:64px; flex-basis:64px; padding:16px 8px}
+    .brand-name, .nav-item span, .user-meta{display:none}
+    .brand{justify-content:center; padding:4px 0 18px}
+    .nav-item{justify-content:center}
+    .main{padding:18px 16px 32px}
+    .stats{grid-template-columns:1fr}
+    .grid-2{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr}
+    .donut-wrap{flex-direction:column; align-items:stretch}
+    .donut{align-self:center}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 原型切换条（真实应用不包含） ============ -->
+<div class="proto-bar">
+  <span class="proto-tag">UI 原型</span>
+  <span class="hint">静态示意 · 数据为样例 · 点右侧切换页面</span>
+  <nav id="nav"></nav>
+</div>
+
+<!-- ============ 1. 登录页 ============ -->
+<section class="screen" id="s-login" data-label="登录 / 注册">
+  <div class="caption">未登录用户的入口页 · 对应 (auth)/login</div>
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg>
+        </div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <h2>欢迎回来</h2>
+      <p class="lead">登录后查看你的收支明细</p>
+
+      <div class="field">
+        <label for="p1">邮箱</label>
+        <input class="input" id="p1" type="email" value="me@example.com" readonly>
+      </div>
+      <div class="field">
+        <label for="p2">密码</label>
+        <input class="input" id="p2" type="password" value="password123" readonly>
+      </div>
+
+      <button class="btn btn-primary btn-block" style="margin-top:8px">登 录</button>
+
+      <p class="auth-foot">还没有账号？<a href="#">立即注册</a></p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ 2. 概览看板 ============ -->
+<section class="screen" id="s-dash" data-label="概览看板">
+  <div class="caption">登录后的首页 · 对应 (app)/page.tsx</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg>
+        </div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <a class="nav-item active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>概览</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>收支明细</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-8.6-8.6a5 5 0 0 1 7-7.1l1.6 1.5 1.6-1.5a5 5 0 0 1 7 7.1Z" opacity=".0"/><path d="M3 7h7l2 3h9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg><span>分类管理</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></svg><span>设置</span></a>
+      <div class="sidebar-foot">
+        <div class="user-chip">
+          <div class="avatar">小</div>
+          <div class="user-meta"><b>小明</b><span>me@example.com</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="page-head">
+        <div>
+          <h1>概览</h1>
+          <p>2025 年 10 月 · 共 42 笔记录</p>
+        </div>
+        <button class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          记一笔
+        </button>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="label"><span class="dot" style="background:var(--income)"></span>本月收入</div>
+          <div class="value v-income">¥18,500.00</div>
+          <div class="sub">比上月 +2.8%</div>
+        </div>
+        <div class="stat">
+          <div class="label"><span class="dot" style="background:var(--expense)"></span>本月支出</div>
+          <div class="value v-expense">¥7,432.50</div>
+          <div class="sub">比上月 −12.4%</div>
+        </div>
+        <div class="stat">
+          <div class="label"><span class="dot" style="background:var(--brand)"></span>本月结余</div>
+          <div class="value">¥11,067.50</div>
+          <div class="sub">储蓄率 59.8%</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">支出构成</div>
+          <div class="card-sub">按分类统计</div>
+          <div class="donut-wrap">
+            <div class="donut">
+              <svg width="152" height="152" viewBox="0 0 152 152">
+                <g transform="rotate(-90 76 76)">
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="var(--bg)" stroke-width="19"/>
+                  <!-- 周长 326.73 -->
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#f97316" stroke-width="19" stroke-dasharray="94.4 232.3" stroke-dashoffset="0"/>
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#3b82f6" stroke-width="19" stroke-dasharray="40.5 286.2" stroke-dashoffset="-94.4"/>
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#a855f7" stroke-width="19" stroke-dasharray="72.2 254.5" stroke-dashoffset="-134.9"/>
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#0ea5e9" stroke-width="19" stroke-dasharray="60.8 265.9" stroke-dashoffset="-207.1"/>
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#ec4899" stroke-width="19" stroke-dasharray="32.0 294.7" stroke-dashoffset="-267.9"/>
+                  <circle cx="76" cy="76" r="52" fill="none" stroke="#64748b" stroke-width="19" stroke-dasharray="26.8 299.9" stroke-dashoffset="-299.9"/>
+                </g>
+              </svg>
+              <div class="donut-center">
+                <b>¥7,432</b>
+                <span>总支出</span>
+              </div>
+            </div>
+            <div class="legend">
+              <div class="legend-row"><span class="dot" style="background:#f97316"></span><span class="nm">餐饮</span><span class="amt">¥2,148.00</span><span class="pct">28.9%</span></div>
+              <div class="legend-row"><span class="dot" style="background:#3b82f6"></span><span class="nm">交通</span><span class="amt">¥922.50</span><span class="pct">12.4%</span></div>
+              <div class="legend-row"><span class="dot" style="background:#a855f7"></span><span class="nm">购物</span><span class="amt">¥1,643.00</span><span class="pct">22.1%</span></div>
+              <div class="legend-row"><span class="dot" style="background:#0ea5e9"></span><span class="nm">居住</span><span class="amt">¥1,380.00</span><span class="pct">18.6%</span></div>
+              <div class="legend-row"><span class="dot" style="background:#ec4899"></span><span class="nm">娱乐</span><span class="amt">¥729.00</span><span class="pct">9.8%</span></div>
+              <div class="legend-row"><span class="dot" style="background:#64748b"></span><span class="nm">其他</span><span class="amt">¥610.00</span><span class="pct">8.2%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">近 6 个月收支对比</div>
+          <div class="card-sub">左绿为收入 · 右红为支出</div>
+          <div style="margin-top:4px">
+            <div class="bar-row"><span class="m">5 月</span><span class="track"><i style="width:86%;background:var(--income)"></i><i style="width:52%;background:var(--expense)"></i></span><span class="nums">19,200 / 9,850</span></div>
+            <div class="bar-row"><span class="m">6 月</span><span class="track"><i style="width:82%;background:var(--income)"></i><i style="width:41%;background:var(--expense)"></i></span><span class="nums">18,400 / 7,720</span></div>
+            <div class="bar-row"><span class="m">7 月</span><span class="track"><i style="width:93%;background:var(--income)"></i><i style="width:58%;background:var(--expense)"></i></span><span class="nums">20,800 / 10,940</span></div>
+            <div class="bar-row"><span class="m">8 月</span><span class="track"><i style="width:84%;background:var(--income)"></i><i style="width:46%;background:var(--expense)"></i></span><span class="nums">18,900 / 8,610</span></div>
+            <div class="bar-row"><span class="m">9 月</span><span class="track"><i style="width:81%;background:var(--income)"></i><i style="width:45%;background:var(--expense)"></i></span><span class="nums">18,000 / 8,480</span></div>
+            <div class="bar-row"><span class="m">10 月</span><span class="track"><i style="width:83%;background:var(--income)"></i><i style="width:39%;background:var(--expense)"></i></span><span class="nums">18,500 / 7,432</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">最近记录</div>
+        <div class="card-sub">最近 5 笔</div>
+        <table class="table">
+          <tbody>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#f97316 15%,transparent);color:#f97316">🍜</span>餐饮</span></td>
+              <td class="note">和同事午餐</td>
+              <td class="date">10-12</td>
+              <td class="r"><span class="amt ex">−¥68.00</span></td>
+            </tr>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#0d9488 15%,transparent);color:#0d9488">💰</span>工资</span></td>
+              <td class="note">10 月薪资</td>
+              <td class="date">10-10</td>
+              <td class="r"><span class="amt in">+¥18,000.00</span></td>
+            </tr>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#a855f7 15%,transparent);color:#a855f7">🛍️</span>购物</span></td>
+              <td class="note">换季外套</td>
+              <td class="date">10-08</td>
+              <td class="r"><span class="amt ex">−¥899.00</span></td>
+            </tr>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#3b82f6 15%,transparent);color:#3b82f6">🚇</span>交通</span></td>
+              <td class="note">地铁充值</td>
+              <td class="date">10-06</td>
+              <td class="r"><span class="amt ex">−¥200.00</span></td>
+            </tr>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#0ea5e9 15%,transparent);color:#0ea5e9">🏠</span>居住</span></td>
+              <td class="note">10 月房租</td>
+              <td class="date">10-01</td>
+              <td class="r"><span class="amt ex">−¥1,380.00</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ 3. 收支明细 ============ -->
+<section class="screen" id="s-list" data-label="收支明细">
+  <div class="caption">列表 + 筛选 + 编辑删除 · 对应 (app)/transactions/page.tsx</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg></div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>概览</span></a>
+      <a class="nav-item active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>收支明细</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 3h9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg><span>分类管理</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></svg><span>设置</span></a>
+      <div class="sidebar-foot">
+        <div class="user-chip"><div class="avatar">小</div><div class="user-meta"><b>小明</b><span>me@example.com</span></div></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="page-head">
+        <div>
+          <h1>收支明细</h1>
+          <p>2025 年 10 月 · 筛选出 24 笔</p>
+        </div>
+        <button class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          记一笔
+        </button>
+      </div>
+
+      <div class="filters">
+        <select class="select"><option>2025 年 10 月</option><option>2025 年 9 月</option><option>2025 年 8 月</option></select>
+        <div class="seg"><span class="on">全部</span><span>支出</span><span>收入</span></div>
+        <select class="select"><option>全部分类</option><option>餐饮</option><option>交通</option><option>购物</option></select>
+        <input class="input" style="width:190px;padding:8px 11px;font-size:12.5px" placeholder="搜索备注…" readonly>
+      </div>
+
+      <div class="card" style="padding:16px 18px">
+        <div class="group-head" style="margin-top:0">
+          <span>10 月 12 日 · 周日</span>
+          <span class="sum">支出 <b>−¥68.00</b></span>
+        </div>
+        <table class="table">
+          <tbody>
+            <tr>
+              <td style="width:34%"><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#f97316 15%,transparent);color:#f97316">🍜</span>餐饮</span></td>
+              <td class="note">和同事午餐</td>
+              <td class="r" style="width:22%"><span class="amt ex">−¥68.00</span></td>
+              <td class="r" style="width:88px">
+                <span class="row-actions">
+                  <button class="icon-btn" title="编辑"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                  <button class="icon-btn" title="删除"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#3b82f6 15%,transparent);color:#3b82f6">🚇</span>交通</span></td>
+              <td class="note">地铁</td>
+              <td class="r"><span class="amt ex">−¥6.00</span></td>
+              <td class="r"><span class="row-actions">
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+              </span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="group-head">
+          <span>10 月 10 日 · 周五</span>
+          <span class="sum">收入 <b style="color:var(--income)">+¥18,000.00</b></span>
+        </div>
+        <table class="table">
+          <tbody>
+            <tr>
+              <td style="width:34%"><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#0d9488 15%,transparent);color:#0d9488">💰</span>工资</span></td>
+              <td class="note">10 月薪资</td>
+              <td class="r" style="width:22%"><span class="amt in">+¥18,000.00</span></td>
+              <td class="r" style="width:88px"><span class="row-actions">
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+              </span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="group-head">
+          <span>10 月 8 日 · 周三</span>
+          <span class="sum">支出 <b>−¥899.00</b></span>
+        </div>
+        <table class="table">
+          <tbody>
+            <tr>
+              <td style="width:34%"><span class="cat"><span class="cat-ico" style="background:color-mix(in srgb,#a855f7 15%,transparent);color:#a855f7">🛍️</span>购物</span></td>
+              <td class="note">换季外套</td>
+              <td class="r" style="width:22%"><span class="amt ex">−¥899.00</span></td>
+              <td class="r" style="width:88px"><span class="row-actions">
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+                <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+              </span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="text-align:center;padding:16px 0 4px">
+          <button class="btn btn-ghost">加载更多</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ 4. 记一笔 ============ -->
+<section class="screen" id="s-new" data-label="记一笔 / 编辑">
+  <div class="caption">新增与编辑共用同一表单 · 对应 transactions/new 与 [id]/edit</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg></div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>概览</span></a>
+      <a class="nav-item active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>收支明细</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 3h9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg><span>分类管理</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></svg><span>设置</span></a>
+      <div class="sidebar-foot">
+        <div class="user-chip"><div class="avatar">小</div><div class="user-meta"><b>小明</b><span>me@example.com</span></div></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="page-head">
+        <div>
+          <h1>记一笔</h1>
+          <p>金额精确到分 · 金额与日期为必填</p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:660px">
+        <div class="form-grid">
+          <div class="field full">
+            <label>类型</label>
+            <div class="type-toggle">
+              <div class="on-ex">支出</div>
+              <div>收入</div>
+            </div>
+          </div>
+
+          <div class="field full">
+            <label for="n-amt">金额（元）</label>
+            <input class="input input-amount" id="n-amt" value="68.00" readonly>
+          </div>
+
+          <div class="field full">
+            <label>分类</label>
+            <div class="chips">
+              <span class="chip on">🍜 餐饮</span>
+              <span class="chip">🚇 交通</span>
+              <span class="chip">🛍️ 购物</span>
+              <span class="chip">🏠 居住</span>
+              <span class="chip">🎬 娱乐</span>
+              <span class="chip">💊 医疗</span>
+              <span class="chip">📦 其他</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="n-date">日期</label>
+            <input class="input" id="n-date" value="2025-10-12" readonly>
+          </div>
+
+          <div class="field">
+            <label for="n-note">备注（选填）</label>
+            <input class="input" id="n-note" placeholder="例如：和同事午餐" value="和同事午餐" readonly>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn">取消</button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ 5. 分类管理 ============ -->
+<section class="screen" id="s-cat" data-label="分类管理">
+  <div class="caption">自定义分类 CRUD · 对应 (app)/categories/page.tsx</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg></div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>概览</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>收支明细</span></a>
+      <a class="nav-item active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 3h9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg><span>分类管理</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></svg><span>设置</span></a>
+      <div class="sidebar-foot">
+        <div class="user-chip"><div class="avatar">小</div><div class="user-meta"><b>小明</b><span>me@example.com</span></div></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="page-head">
+        <div>
+          <h1>分类管理</h1>
+          <p>删除分类不会删除历史记录，相关记录会变为「未分类」</p>
+        </div>
+        <button class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          新建分类
+        </button>
+      </div>
+
+      <div class="section-label">支出分类 · 6 个</div>
+      <div class="cat-grid">
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#f97316 15%,transparent);color:#f97316">🍜</span>
+          <span class="meta"><b>餐饮</b><span>28 笔 · ¥2,148.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#3b82f6 15%,transparent);color:#3b82f6">🚇</span>
+          <span class="meta"><b>交通</b><span>12 笔 · ¥922.50</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#a855f7 15%,transparent);color:#a855f7">🛍️</span>
+          <span class="meta"><b>购物</b><span>7 笔 · ¥1,643.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#0ea5e9 15%,transparent);color:#0ea5e9">🏠</span>
+          <span class="meta"><b>居住</b><span>2 笔 · ¥1,380.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#ec4899 15%,transparent);color:#ec4899">🎬</span>
+          <span class="meta"><b>娱乐</b><span>5 笔 · ¥729.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#64748b 15%,transparent);color:#64748b">📦</span>
+          <span class="meta"><b>其他</b><span>4 笔 · ¥610.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="section-label">收入分类 · 3 个</div>
+      <div class="cat-grid">
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#0d9488 15%,transparent);color:#0d9488">💰</span>
+          <span class="meta"><b>工资</b><span>1 笔 · ¥18,000.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#22c55e 15%,transparent);color:#22c55e">🎁</span>
+          <span class="meta"><b>奖金</b><span>0 笔</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+        <div class="cat-card">
+          <span class="ico" style="background:color-mix(in srgb,#eab308 15%,transparent);color:#eab308">📈</span>
+          <span class="meta"><b>投资收益</b><span>1 笔 · ¥500.00</span></span>
+          <button class="icon-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="section-label">新建 / 编辑分类</div>
+      <div class="card" style="max-width:520px">
+        <div class="form-grid">
+          <div class="field">
+            <label for="c-name">名称</label>
+            <input class="input" id="c-name" value="宠物" readonly>
+          </div>
+          <div class="field">
+            <label for="c-type">类型</label>
+            <select class="select" id="c-type" style="width:100%"><option>支出</option><option>收入</option></select>
+          </div>
+          <div class="field full">
+            <label>图标</label>
+            <div class="chips">
+              <span class="chip on">🐾</span><span class="chip">🍜</span><span class="chip">🚇</span>
+              <span class="chip">🛍️</span><span class="chip">🏠</span><span class="chip">🎬</span>
+              <span class="chip">💊</span><span class="chip">📚</span><span class="chip">✈️</span>
+            </div>
+          </div>
+          <div class="field full">
+            <label>颜色</label>
+            <div class="swatches">
+              <i class="on" style="background:#f97316"></i><i style="background:#3b82f6"></i>
+              <i style="background:#a855f7"></i><i style="background:#0ea5e9"></i>
+              <i style="background:#ec4899"></i><i style="background:#22c55e"></i>
+              <i style="background:#eab308"></i><i style="background:#64748b"></i>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn">取消</button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ 6. 设置 ============ -->
+<section class="screen" id="s-set" data-label="设置">
+  <div class="caption">账户设置 · 对应 (app)/settings/page.tsx</div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v1"/><path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M21 11h-5a2 2 0 0 0 0 4h5z"/></svg></div>
+        <span class="brand-name">记账本</span>
+      </div>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>概览</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>收支明细</span></a>
+      <a class="nav-item"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h7l2 3h9v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg><span>分类管理</span></a>
+      <a class="nav-item active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15a2 2 0 1 1 0-4 1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a2 2 0 1 1 4 0 1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 21 11a2 2 0 1 1 0 4Z"/></svg><span>设置</span></a>
+      <div class="sidebar-foot">
+        <div class="user-chip"><div class="avatar">小</div><div class="user-meta"><b>小明</b><span>me@example.com</span></div></div>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="page-head">
+        <div><h1>设置</h1><p>账户与偏好</p></div>
+      </div>
+
+      <div class="card" style="max-width:620px">
+        <div class="card-title">账户</div>
+        <div class="card-sub">登录邮箱不可修改</div>
+        <div class="kv"><span class="k">昵称</span><span>小明</span></div>
+        <div class="kv"><span class="k">邮箱</span><span>me@example.com</span></div>
+        <div class="kv"><span class="k">注册时间</span><span>2025-10-01</span></div>
+      </div>
+
+      <div class="card" style="max-width:620px;margin-top:16px">
+        <div class="card-title">偏好</div>
+        <div class="card-sub">影响展示格式，不改变已存数据</div>
+        <div class="kv"><span class="k">默认币种</span><span>人民币 CNY（¥）</span></div>
+        <div class="kv"><span class="k">界面语言</span><span>简体中文</span></div>
+        <div class="kv"><span class="k">深色模式</span><span class="switch"></span></div>
+        <div class="kv"><span class="k">每周记账提醒</span><span class="switch off"></span></div>
+      </div>
+
+      <div class="section-label">危险操作</div>
+      <div class="danger-zone" style="max-width:620px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:600;font-size:13.5px">清空所有记账数据</div>
+            <div style="color:var(--muted);font-size:12.5px;margin-top:3px">删除全部收支记录与自定义分类，账号保留。此操作不可撤销。</div>
+          </div>
+          <button class="btn" style="color:var(--expense);border-color:color-mix(in srgb,var(--expense) 40%,transparent)">清空数据</button>
+        </div>
+      </div>
+
+      <div style="max-width:620px;margin-top:22px">
+        <button class="btn">退出登录</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const screens = [...document.querySelectorAll('.screen')];
+  const nav = document.getElementById('nav');
+  let cur = 's-login';
+
+  function show(id){
+    cur = id;
+    screens.forEach(s => s.classList.toggle('on', s.id === id));
+    [...nav.children].forEach(b => b.classList.toggle('on', b.dataset.target === id));
+    window.scrollTo({top:0, behavior:'instant'});
+  }
+
+  screens.forEach(s => {
+    const b = document.createElement('button');
+    b.textContent = s.dataset.label;
+    b.dataset.target = s.id;
+    b.onclick = () => show(s.id);
+    nav.appendChild(b);
+  });
+
+  // 让导航与侧边栏联动：点击侧边栏项切换对应页面
+  const map = { '概览':'s-dash', '收支明细':'s-list', '分类管理':'s-cat', '设置':'s-set' };
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const label = item.querySelector('span')?.textContent?.trim();
+    if (map[label]) item.style.cursor = 'pointer', item.onclick = () => show(map[label]);
+  });
+
+  show('s-dash');
+</script>
+</body>
+</html>
